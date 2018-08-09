@@ -1,0 +1,25 @@
+{% include "header.html" %}
+
+<div class="chooser text-center">
+  <h2>2 Way Partial Dependency Plot</h2>
+</div>
+
+<div class="canvas" style="margin: 0 auto; width: 580px;">
+  <p>
+    Use this application to generate 2 way partial dependency plots for
+    any model produced by a DataRobot project.
+  </p> 
+  <p>
+    Once generated, the plots will be saved in the folder <b>/static</b>
+    and reused if you request them again. The file name will be as follows:
+  </p>
+  <pre>
+   PRJECT_ID-MODEL_ID-COLONE_NAME-COLTWO_NAME.png
+  </pre>
+  <p>
+    If you want to regenerate a
+    plot using an alternative dataset you will need to delete the old version.
+  </p>
+</div>
+
+{% include "footer.html" %}

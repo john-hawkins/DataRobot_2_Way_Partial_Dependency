@@ -1,0 +1,59 @@
+{% include "header.html" %}
+
+<div class="chooser text-center">
+  <h2>{{ project.project_name }}</h2>
+  <h4>Target: {{ project.target }}</h4>
+</div>
+
+<div class="controlpanel text-center">
+    <form method="post" action="/generate"  enctype="multipart/form-data">
+     <input type="hidden" name="projectId" value="{{ project.id }}">
+     <div class="input-group" style="margin: 0 auto; width: 780px;">
+     <table>
+      <tr><th colspan=2>Configuration</th> <th></th></tr>
+      <tr>
+          <td style="white-space: nowrap">Choose a Model</td>
+          <td>
+           <select name="modelId" class="form-control">
+           {% for mo in models %}
+              <option value="{{ mo.id }}">{{ mo.model_type }} - {{ mo.featurelist_name }} - {{ mo.sample_pct }}%</option>
+           {% endfor %}
+           </select>
+          </td>
+          <td></td>
+      </tr>
+      <tr>
+          <td style="white-space: nowrap">Upload a Dataset</td>
+          <td><input type="file" name="file" class="form-control"></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td style="white-space: nowrap">Select Column One</td>
+          <td>
+           <select name="colone" class="form-control">
+           {% for fe in features %}
+              <option value="{{ fe }}">{{ fe }}</option>
+           {% endfor %}
+           </select>
+          </td>
+          <td></td>
+      </tr>
+      <tr>
+          <td style="white-space: nowrap">Select Column Two</td>
+          <td>
+           <select name="coltwo" class="form-control">
+           {% for fe in features %}
+              <option value="{{ fe }}">{{ fe }}</option>
+           {% endfor %}
+           </select>
+          </td>
+          <td><button type="submit" class="btn btn-danger">Generate</button></td>
+      </tr>
+     </table>
+    </div>
+  </form>
+</div>
+
+{% include "basic_model_list.html" %}
+
+{% include "footer.html" %}
