@@ -47,12 +47,22 @@
            {% endfor %}
            </select>
           </td>
-          <td><button type="submit" class="btn btn-danger">Generate</button></td>
+          <td><button id="generate" type="submit" class="btn btn-danger">Generate</button></td>
       </tr>
      </table>
     </div>
   </form>
+ <div id="placeholder" style="margin: 10 auto; width: 680px;"></div>
 </div>
+
+<script>
+  bootstrap_alert = function(message) {
+    $('#placeholder').html(
+      '<div class="alert alert-warning"><a class="close" data-dismiss="alert">×</a><span>'+message+'</span></div>');
+   }
+   $('#generate').on('click', function() {bootstrap_alert('Please be patient, this can take 5-10 minutes to calculate.');
+});
+</script>
 
 {% include "basic_model_list.html" %}
 
