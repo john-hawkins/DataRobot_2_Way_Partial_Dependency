@@ -1,5 +1,5 @@
 Uploads
 =======
 
-This folder will holder data uploaded to the application
+This folder will hold data uploaded to the application
 

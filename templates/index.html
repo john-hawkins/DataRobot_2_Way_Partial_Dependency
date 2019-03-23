@@ -4,7 +4,7 @@
   <h3>Choose your DataRobot Project</h3> 
   <form method="post" action="/configure">
     <div class="input-group" style="margin: 0 auto; width: 600px;">
-        <select name="projectId" class="form-control">
+        <select name="project_id" class="form-control">
            {% for proj in projects %}
               <option value="{{ proj.id }}">{{ proj.project_name }}</option>
            {% endfor %}

@@ -29,9 +29,11 @@ HOST = config['HOST']
 # TODO: Make this return quantiles
 def getValuesToTest(data, col):
     vals = data[col].drop_duplicates()
-    if len(vals) < 25:
-        return vals
-    return vals.iloc[0:25]
+    if len(vals) > 25:
+        col_inc = (max(vals)- min(vals))/20
+        vals = np.arange(min(vals), max(vals)+col_inc, col_inc)
+    return vals
+
 
 
 def generate2WayPD_Data(proj, mod, pdata, colone, coltwo):

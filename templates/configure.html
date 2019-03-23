@@ -7,14 +7,14 @@
 
 <div class="controlpanel text-center">
     <form method="post" action="/generate"  enctype="multipart/form-data">
-     <input type="hidden" name="projectId" value="{{ project.id }}">
+     <input type="hidden" name="project_id" value="{{ project.id }}">
      <div class="input-group" style="margin: 0 auto; width: 780px;">
      <table>
       <tr><th colspan=2>Configuration</th> <th></th></tr>
       <tr>
           <td style="white-space: nowrap">Choose a Model</td>
           <td>
-           <select name="modelId" class="form-control">
+           <select name="model_id" class="form-control">
            {% for mo in models %}
               <option value="{{ mo.id }}">{{ mo.model_type }} - {{ mo.featurelist_name }} - {{ mo.sample_pct }}%</option>
            {% endfor %}

@@ -3,6 +3,7 @@ from werkzeug.utils import secure_filename
 from pathlib import Path
 import pandas as pd
 import datarobot as dr
+import chardet
 import os
 
 # Import the file: PartialDependency.py
@@ -32,12 +33,12 @@ def index():
 @app.route('/configure', methods = ['POST', 'GET'])
 def configure():
     if request.method == 'POST':
-       projectId = request.form["projectId"]
-    proj = dr.Project.get(project_id=projectId)
+       project_id = request.form["project_id"]
+    proj = dr.Project.get(project_id=project_id)
     proj_type = proj.target_type
     mods = proj.get_models()
     feats = mods[0].get_features_used()   
-    useable_feats = removeNonNumericFeatures(projectId, feats)
+    useable_feats = removeNonNumericFeatures(project_id, feats)
     projs = dr.Project.list()
     return render_template("configure.html", project=proj, models=mods, projects=projs, features=useable_feats)
 
@@ -54,17 +55,17 @@ def removeNonNumericFeatures(project_id, features):
 @app.route('/generate', methods = ['POST', 'GET'])
 def generate():
     if request.method == 'POST':
-        projectId = request.form["projectId"]
-        modelId = request.form["modelId"]
+        project_id = request.form["project_id"]
+        model_id = request.form["model_id"]
         colOne = request.form["colone"]
         colTwo = request.form["coltwo"]
 
-        proj = dr.Project.get(project_id=projectId)
+        proj = dr.Project.get(project_id=project_id)
         mods = proj.get_models()
-        mod = dr.Model.get(proj.id, modelId)
+        mod = dr.Model.get(proj.id, model_id)
         feats = mod.get_features_used()
 
-        plotpath = "static/" + projectId + "-" + modelId + "-" + colOne + "-" + colTwo + ".png"
+        plotpath = "static/" + project_id + "-" + model_id + "-" + colOne + "-" + colTwo + ".png"
 
         print("Checking for file: ", plotpath)
 
@@ -90,7 +91,12 @@ def generate():
             filename = secure_filename(file.filename)
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             file.save(filepath)
-            pdata = pd.read_csv(filepath)
+            # NEED TO CHECK THE ENCODING BEFORE TRYING TO OPEN
+            # BECAUSE SOME PEOPLE STILL USE THINGS OTHER THAN UNICODE
+            rawdata = open("/Users/john.hawkins/Demos/Lending-Club/10K_Lending_Club_Loans.csv", "rb").read()
+            enc = chardet.detect(rawdata)
+
+            pdata = pd.read_csv(filepath, encoding=enc['encoding'], low_memory=False)
             nrows =  len(pdata)
             ncols = len(pdata.columns)
 
