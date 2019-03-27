@@ -17,6 +17,7 @@ pip install -U datarobot_batch_scoring
 You will also need a bunch of python libraries, including the DataRobot API
 
 ```
+pip install chardet
 pip install numpy
 pip install pandas
 pip install datarobot
