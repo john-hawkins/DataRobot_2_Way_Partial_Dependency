@@ -6,12 +6,13 @@ import datarobot as dr
 import chardet
 import os
 
-# Import the file: PartialDependency.py
-import PartialDependency   
+# Import the file:  src/PartialDependency.py
+import src.PartialDependency as partd
 
 app = Flask(__name__)
 
 UPLOAD_FOLDER = './uploads'
+CONFIG_FILE = "./config.yml"
 
 ALLOWED_EXTENSIONS = set(['csv'])
 def allowed_file(filename):
@@ -57,22 +58,22 @@ def generate():
     if request.method == 'POST':
         project_id = request.form["project_id"]
         model_id = request.form["model_id"]
-        colOne = request.form["colone"]
-        colTwo = request.form["coltwo"]
+        colone = request.form["colone"]
+        coltwo = request.form["coltwo"]
 
         proj = dr.Project.get(project_id=project_id)
         mods = proj.get_models()
         mod = dr.Model.get(proj.id, model_id)
         feats = mod.get_features_used()
 
-        plotpath = "static/" + project_id + "-" + model_id + "-" + colOne + "-" + colTwo + ".png"
+        plotpath = "static/" + project_id + "-" + model_id + "-" + colone + "-" + coltwo + ".png"
 
         print("Checking for file: ", plotpath)
 
         my_file = Path(plotpath)
         if my_file.is_file():
             print("Found it, rendering")
-            return render_template("generated.html", project=proj, model=mod, colone=colOne, coltwo=colTwo, pdplot=plotpath)
+            return render_template("generated.html", project=proj, model=mod, colone=colone, coltwo=coltwo, pdplot=plotpath)
 
         # ########################################################
         # check if the post request has the file part
@@ -93,17 +94,16 @@ def generate():
             file.save(filepath)
             # NEED TO CHECK THE ENCODING BEFORE TRYING TO OPEN
             # BECAUSE SOME PEOPLE STILL USE THINGS OTHER THAN UNICODE
-            rawdata = open("/Users/john.hawkins/Demos/Lending-Club/10K_Lending_Club_Loans.csv", "rb").read()
+            rawdata = open(filepath, "rb").read()
             enc = chardet.detect(rawdata)
 
             pdata = pd.read_csv(filepath, encoding=enc['encoding'], low_memory=False)
             nrows =  len(pdata)
             ncols = len(pdata.columns)
 
-            #twoWaypd = PartialDependency.generate2WayPD_Embedded_Image(proj, mod, pdata, colOne, colTwo)
-            PartialDependency.generate2WayPD_Plot(proj, mod, pdata, colOne, colTwo, plotpath)
+            partd.generate_2_way_pd_plot_and_save(proj, mod, pdata, colone, coltwo, CONFIG_FILE, plotpath)
 
-            return render_template("generated.html", project=proj, model=mod, colone=colOne, coltwo=colTwo, pdplot=plotpath)
+            return render_template("generated.html", project=proj, model=mod, colone=colone, coltwo=coltwo, pdplot=plotpath)
 
 
 

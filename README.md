@@ -47,6 +47,11 @@ TODO: Add support for categoricals.
 
 The script [Example.py](Example.py) Shows you how to create the partial dependency in a standalone python script.
 
+This script will generate a plot like the one below.
+
+![2 Way Partial Dependency for Insurance Fraud](scripts/Example.png "Insurance Fraud Partial Dependency" )
+
+
 The file [app.py](app.py) and the contents of the [templates](templates) directory is a python flask 
 web application you can use to generate 2 way partial dependency plots for any pair of numerical features 
 used in a DataRobot model.

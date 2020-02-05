@@ -1,7 +1,11 @@
-# #################################################################
-# Methods for calculating partial dependency data and plots
-# on DataRobot models
-# #################################################################
+"""
+Custom Partial Dependency Functions for generating 2 way partial dependencies for DataRobot models
+
+Created: 2019
+
+@author: john.hawkins
+"""
+
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import matplotlib.pyplot as plt
@@ -15,19 +19,27 @@ import time
 import yaml
 import io
 
-#
-# LOAD CONFIG DATA
-# For running the batch scoring script
-config = yaml.safe_load(open('config.yml'))
 
-API_TOKEN = config['API_TOKEN']
-USERNAME = config['USERNAME']
-DATAROBOT_KEY = config['DATAROBOT_KEY']
-HOST = config['HOST']
+# ################################################################################
+def load_config(configfile):
+    """
+      LOAD CONFIG DATA
+      For running the batch scoring script
+    """
+    config = yaml.safe_load(open(configfile))
+    API_TOKEN = config['API_TOKEN']
+    USERNAME = config['USERNAME']
+    DATAROBOT_KEY = config['DATAROBOT_KEY']
+    HOST = config['HOST']
+    return API_TOKEN,USERNAME,DATAROBOT_KEY,HOST
 
-# HELPER METHOD - VALUES TO TEST IN PD
-# TODO: Make this return quantiles
+# ################################################################################
 def getValuesToTest(data, col):
+    """
+       HELPER METHOD - Generate all the values that will be tested in the 
+       partial dependence
+       TODO: Make this return quantiles rather than even distribution
+    """
     vals = data[col].drop_duplicates()
     if len(vals) > 25:
         col_inc = (max(vals)- min(vals))/20
@@ -35,8 +47,15 @@ def getValuesToTest(data, col):
     return vals
 
 
-
-def generate2WayPD_Data(proj, mod, pdata, colone, coltwo):
+# ################################################################################
+def generate_2_way_pd_data(proj, mod, pdata, colone, coltwo, configfile):
+    """ 
+        Function to generate the required 2 way partial dependency data.
+        Performs all the re-sampling variations of a dataset
+        that are required and then scores against a DataRobot model, then
+        returns average values for the sampled variations.
+    """
+    API_TOKEN, USERNAME, DATAROBOT_KEY, HOST = load_config(configfile)
     PROJECT_ID=proj.id 
     MODEL_ID=mod.id
     TARGET=proj.target
@@ -81,18 +100,9 @@ def generate2WayPD_Data(proj, mod, pdata, colone, coltwo):
     output = sp.check_output(command, stderr=sp.STDOUT)
 
     preds = pd.read_csv('./out.csv', names=['row_id'] + keep_cols + ['false', 'true'], skiprows=1)
-    # Fill in the blanks for pandas group by to work
-    preds.loc[preds[colone].isna(), colone] = 'N/A'
-    preds.loc[preds[coltwo].isna(), coltwo] = 'N/A'
 
-    allcols = keep_cols.copy()
-    allcols.append('true')
-    justcols = preds[allcols]
-    allcols[2] = TARGET
-    justcols.columns = allcols
+    pdep = process_scored_records(proj, colone, coltwo, preds)
 
-    pdep = justcols.groupby(keep_cols, as_index=False).mean()
- 
     # CLEAN UP THE CREATED FILES
     cleanup = ['rm', 'out.csv', 'datarobot_batch_scoring_main.log', 'XX_temp_data_for_scoring.csv']
     output = sp.check_output(cleanup, stderr=sp.STDOUT)
@@ -100,11 +110,33 @@ def generate2WayPD_Data(proj, mod, pdata, colone, coltwo):
     return pdep
 
 
+
+# ################################################################################
+def process_scored_records(proj, colone, coltwo, preds):
+    """ Process the records from the batch scoring job to create the partial dependency """
+
+    # Fill in the blanks for pandas group by to work
+    preds.loc[preds[colone].isna(), colone] = 'N/A'
+    preds.loc[preds[coltwo].isna(), coltwo] = 'N/A'
+ 
+    group_cols = [colone, coltwo]
+    if (proj.target_type == 'Binary') :
+       justcols = preds.loc[:,[colone, coltwo, 'true']]
+       justcols.columns = [colone, coltwo, proj.target]
+    else:
+        justcols = preds.loc[:,[colone, coltwo, proj.target]]
+
+    pdep = justcols.groupby( group_cols, as_index=False).mean()
+    pdep.columns = [colone, coltwo, proj.target]
+
+    return pdep
+
+
 #######################################################################
 # CREATE A 2 WAY PARTIAL DEPENDENCY AND SAVE IT IN A FILE
 #########################################################################
-def generate2WayPD_Plot(proj, mod, pdata, colone, coltwo, filename):
-    pdep = generate2WayPD_Data(proj, mod, pdata, colone, coltwo)
+def generate_2_way_pd_plot(proj, mod, pdata, colone, coltwo, configfile):
+    pdep = generate_2_way_pd_data(proj, mod, pdata, colone, coltwo, configfile)
 
     TARGET=proj.target
     dim1 = pdep[colone]
@@ -117,14 +149,14 @@ def generate2WayPD_Plot(proj, mod, pdata, colone, coltwo, filename):
     ax.set_xlabel(colone)
     ax.set_ylabel(coltwo)
     ax.set_zlabel(TARGET)
-    plt.savefig(filename, format='png')    
+    return plt
 
 #########################################################################
 # CREATE A 2 WAY PARTIAL DEPENDENCY AND RETURN STRING CODE TO EMBED 
 # INSIDE A FLASK WEB APPLICATION
 #########################################################################
-def generate2WayPD_Embedded_Image(proj, mod, pdata, colone, coltwo):
-    pdep = generate2WayPD_Data(proj, mod, pdata, colone, coltwo)
+def generate_2_way_pd_embedded_image(proj, mod, pdata, colone, coltwo, configfile):
+    pdep = generate_2_way_pd_data(proj, mod, pdata, colone, coltwo,configfile)
     TARGET=proj.target
     dim1 = pdep[colone]
     dim2 = pdep[coltwo]
@@ -144,4 +176,10 @@ def generate2WayPD_Embedded_Image(proj, mod, pdata, colone, coltwo):
 
     return 'data:image/png;base64,{}'.format(plot_url)
 
-
+# ################################################################################
+def generate_2_way_pd_plot_and_save(proj, mod, pdata, colone, coltwo, configfile, plotpath):
+    plt = generate_2_way_pd_plot(proj, mod, pdata, colone, coltwo, configfile)
+    print("PLOT GENERATED -- SAVING TO: ", plotpath)
+    plt.savefig(plotpath, format='png')
+    print("SAVED")
+    plt.close()
