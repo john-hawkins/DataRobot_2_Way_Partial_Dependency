@@ -8,12 +8,6 @@ This project demonstrates a 2-way partial dependency using DataRobot python API.
  
 You will need a DataRobot account and access to a dedicated prediction server.
 
-You will need the python batch scoring script (used to score the variations efficiently).
-
-```
-pip install -U datarobot_batch_scoring
-```
-
 You will also need a bunch of python libraries, including the DataRobot API
 
 ```
@@ -21,13 +15,6 @@ pip install chardet
 pip install numpy
 pip install pandas
 pip install datarobot
-```
-
-You will need create the CONFIG file and fill in the required details from the deployed model.
-
-```
-cp config.yml.example config.yml
-vi config.yml
 ```
 
 ## About
@@ -45,12 +32,15 @@ TODO: Add support for categoricals.
 
 ## Usage
 
-The script [Example.py](Example.py) Shows you how to create the partial dependency in a standalone python script.
+The script [example.py](scripts/example.py) Shows you how to create the partial dependency in a standalone python script.
 
-This script will generate a plot like the one below.
+This script will generate a plot like the examples below.
 
-![2 Way Partial Dependency for Insurance Fraud](scripts/Example.png "Insurance Fraud Partial Dependency" )
+#### 2 Way partial Dependency - Binary Classification
+![2 Way Partial Dependency for Insurance Fraud](scripts/Example2.png "Insurance Fraud Partial Dependency" )
 
+#### 2 Way partial Dependency - Regression
+![2 Way Partial Dependency for Sales Forecast](scripts/Example1.png "Sales Forecast Partial Dependency" )
 
 The file [app.py](app.py) and the contents of the [templates](templates) directory is a python flask 
 web application you can use to generate 2 way partial dependency plots for any pair of numerical features 

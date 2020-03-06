@@ -20,18 +20,6 @@ import yaml
 import io
 
 
-# ################################################################################
-def load_config(configfile):
-    """
-      LOAD CONFIG DATA
-      For running the batch scoring script
-    """
-    config = yaml.safe_load(open(configfile))
-    API_TOKEN = config['API_TOKEN']
-    USERNAME = config['USERNAME']
-    DATAROBOT_KEY = config['DATAROBOT_KEY']
-    HOST = config['HOST']
-    return API_TOKEN,USERNAME,DATAROBOT_KEY,HOST
 
 # ################################################################################
 def getValuesToTest(data, col):
@@ -48,14 +36,13 @@ def getValuesToTest(data, col):
 
 
 # ################################################################################
-def generate_2_way_pd_data(proj, mod, pdata, colone, coltwo, configfile):
+def generate_2_way_pd_data(proj, mod, pdata, colone, coltwo):
     """ 
         Function to generate the required 2 way partial dependency data.
         Performs all the re-sampling variations of a dataset
         that are required and then scores against a DataRobot model, then
         returns average values for the sampled variations.
     """
-    API_TOKEN, USERNAME, DATAROBOT_KEY, HOST = load_config(configfile)
     PROJECT_ID=proj.id 
     MODEL_ID=mod.id
     TARGET=proj.target
@@ -68,11 +55,9 @@ def generate_2_way_pd_data(proj, mod, pdata, colone, coltwo, configfile):
     if samples > len(pdata):
         samples = len(pdata)
     print("Number of Samples:", samples)
-
     # WE HAVE TO ADD A RANDOM STATE TO ENSURE THAT THE SAMPLES ARE UNIQUE 
     # EACH TIME WE EXECUTE. OTHERWISE THERE CAN BE ISSUES WHEN YOU RE_RUN THE SAME DATA
     data_sample = pdata.sample(samples, random_state=round(time.time()) )
-
     partial_dependence_dfs = []
     for c1_value in colone_values:
         for c2_value in coltwo_values:
@@ -80,33 +65,17 @@ def generate_2_way_pd_data(proj, mod, pdata, colone, coltwo, configfile):
             temp_data[colone] = c1_value
             temp_data[coltwo] = c2_value
             partial_dependence_dfs.append(temp_data)
-
     partial_dependence_df = pd.concat(partial_dependence_dfs)
-    partial_dependence_df.to_csv('./XX_temp_data_for_scoring.csv', index=False)
-    keep_cols = [colone, coltwo]
-    # SET UP THE BATCH PROCESS AND RUN 
-    command = ['batch_scoring',
-               '-y',
-               '--host', HOST,
-               '--user', USERNAME,
-               '--api_token', API_TOKEN,
-               '--datarobot_key', DATAROBOT_KEY,
-               '--keep_cols', ','.join(keep_cols),
-               PROJECT_ID,
-               MODEL_ID,
-               './XX_temp_data_for_scoring.csv']    
-
-    print("EXECUTING COMMAND:", ' '.join(command))
-    output = sp.check_output(command, stderr=sp.STDOUT)
-
-    preds = pd.read_csv('./out.csv', names=['row_id'] + keep_cols + ['false', 'true'], skiprows=1)
+    dataset = proj.upload_dataset(partial_dependence_df)
+    pred_job = mod.request_predictions(dataset.id)
+    preds = dr.models.predict_job.wait_for_async_predictions(proj.id, predict_job_id=pred_job.id, max_wait=600)
+    temp1 = partial_dependence_df.reset_index()[colone]
+    temp2 = partial_dependence_df.reset_index()[coltwo]
+    preds[colone] = temp1
+    preds[coltwo] = temp2
 
     pdep = process_scored_records(proj, colone, coltwo, preds)
 
-    # CLEAN UP THE CREATED FILES
-    cleanup = ['rm', 'out.csv', 'datarobot_batch_scoring_main.log', 'XX_temp_data_for_scoring.csv']
-    output = sp.check_output(cleanup, stderr=sp.STDOUT)
- 
     return pdep
 
 
@@ -121,10 +90,11 @@ def process_scored_records(proj, colone, coltwo, preds):
  
     group_cols = [colone, coltwo]
     if (proj.target_type == 'Binary') :
-       justcols = preds.loc[:,[colone, coltwo, 'true']]
+       justcols = preds.loc[:,[colone, coltwo, 'positive_probability']]
        justcols.columns = [colone, coltwo, proj.target]
     else:
-        justcols = preds.loc[:,[colone, coltwo, proj.target]]
+       justcols = preds.loc[:,[colone, coltwo, 'prediction']]
+       justcols.columns = [colone, coltwo, proj.target]
 
     pdep = justcols.groupby( group_cols, as_index=False).mean()
     pdep.columns = [colone, coltwo, proj.target]
@@ -135,8 +105,8 @@ def process_scored_records(proj, colone, coltwo, preds):
 #######################################################################
 # CREATE A 2 WAY PARTIAL DEPENDENCY AND SAVE IT IN A FILE
 #########################################################################
-def generate_2_way_pd_plot(proj, mod, pdata, colone, coltwo, configfile):
-    pdep = generate_2_way_pd_data(proj, mod, pdata, colone, coltwo, configfile)
+def generate_2_way_pd_plot(proj, mod, pdata, colone, coltwo):
+    pdep = generate_2_way_pd_data(proj, mod, pdata, colone, coltwo)
 
     TARGET=proj.target
     dim1 = pdep[colone]
@@ -155,8 +125,8 @@ def generate_2_way_pd_plot(proj, mod, pdata, colone, coltwo, configfile):
 # CREATE A 2 WAY PARTIAL DEPENDENCY AND RETURN STRING CODE TO EMBED 
 # INSIDE A FLASK WEB APPLICATION
 #########################################################################
-def generate_2_way_pd_embedded_image(proj, mod, pdata, colone, coltwo, configfile):
-    pdep = generate_2_way_pd_data(proj, mod, pdata, colone, coltwo,configfile)
+def generate_2_way_pd_embedded_image(proj, mod, pdata, colone, coltwo):
+    pdep = generate_2_way_pd_data(proj, mod, pdata, colone, coltwo)
     TARGET=proj.target
     dim1 = pdep[colone]
     dim2 = pdep[coltwo]
@@ -177,8 +147,8 @@ def generate_2_way_pd_embedded_image(proj, mod, pdata, colone, coltwo, configfil
     return 'data:image/png;base64,{}'.format(plot_url)
 
 # ################################################################################
-def generate_2_way_pd_plot_and_save(proj, mod, pdata, colone, coltwo, configfile, plotpath):
-    plt = generate_2_way_pd_plot(proj, mod, pdata, colone, coltwo, configfile)
+def generate_2_way_pd_plot_and_save(proj, mod, pdata, colone, coltwo plotpath):
+    plt = generate_2_way_pd_plot(proj, mod, pdata, colone, coltwo)
     print("PLOT GENERATED -- SAVING TO: ", plotpath)
     plt.savefig(plotpath, format='png')
     print("SAVED")
