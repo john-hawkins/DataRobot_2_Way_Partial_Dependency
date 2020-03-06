@@ -147,7 +147,7 @@ def generate_2_way_pd_embedded_image(proj, mod, pdata, colone, coltwo):
     return 'data:image/png;base64,{}'.format(plot_url)
 
 # ################################################################################
-def generate_2_way_pd_plot_and_save(proj, mod, pdata, colone, coltwo plotpath):
+def generate_2_way_pd_plot_and_save(proj, mod, pdata, colone, coltwo, plotpath):
     plt = generate_2_way_pd_plot(proj, mod, pdata, colone, coltwo)
     print("PLOT GENERATED -- SAVING TO: ", plotpath)
     plt.savefig(plotpath, format='png')
